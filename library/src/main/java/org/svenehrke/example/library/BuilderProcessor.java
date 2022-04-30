@@ -1,6 +1,7 @@
 package org.svenehrke.example.library;
 
 import com.google.auto.service.AutoService;
+import org.stringtemplate.v4.ST;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -65,7 +66,9 @@ public class BuilderProcessor extends AbstractProcessor {
 
 	private void writeBuilderFile(
 		PrintWriter out,
-		String className, Map<String, String> setterMap)
+		String className,
+		Map<String, String> setterMap
+	)
 		throws IOException {
 
 		String packageName = null;
@@ -76,56 +79,47 @@ public class BuilderProcessor extends AbstractProcessor {
 
 		String simpleClassName = className.substring(lastDot + 1);
 		String builderClassName = className + "Builder";
-		String builderSimpleClassName = builderClassName
-			.substring(lastDot + 1);
+		String builderSimpleClassName = builderClassName.substring(lastDot + 1);
+		List<String> setterList = setterList(setterMap, builderSimpleClassName);
 
+		var st = new ST("""
+			<if(PN)>package <PN>;
+
+			<endif>
+			public class <CN> {
+			 private <SCN> object = new <SCN>();
+
+			 public <SCN> build() {
+			 	return object;
+			 }
+
+			 <setters:{x | <x>}; separator={\n}>
+			}
+			""");
 		if (packageName != null) {
-			out.print("package ");
-			out.print(packageName);
-			out.println(";");
-			out.println();
+			st.add("PN", packageName);
 		}
+		st.add("CN", builderSimpleClassName);
+		st.add("SCN", simpleClassName);
+		st.add("setters", setterList);
+		out.print(st.render());
+	}
 
-		out.print("public class ");
-		out.print(builderSimpleClassName);
-		out.println(" {");
-		out.println();
-
-		out.print("    private ");
-		out.print(simpleClassName);
-		out.print(" object = new ");
-		out.print(simpleClassName);
-		out.println("();");
-		out.println();
-
-		out.print("    public ");
-		out.print(simpleClassName);
-		out.println(" build() {");
-		out.println("        return object;");
-		out.println("    }");
-		out.println();
-
-		setterMap.entrySet().forEach(setter -> {
+	private List<String> setterList(Map<String, String> setterMap, String builderSimpleClassName) {
+		return setterMap.entrySet().stream().map(setter -> {
 			String methodName = setter.getKey();
 			String argumentType = setter.getValue();
 
-			out.print("    public ");
-			out.print(builderSimpleClassName);
-			out.print(" ");
-			out.print(methodName);
-
-			out.print("(");
-
-			out.print(argumentType);
-			out.println(" value) {");
-			out.print("        object.");
-			out.print(methodName);
-			out.println("(value);");
-			out.println("        return this;");
-			out.println("    }");
-			out.println();
-		});
-
-		out.println("}");
+			ST setterST = new ST("""
+				  public <CN> <MN>(<AT> value) {
+				    object.<MN>(value);
+				    return this;
+				  }
+				""");
+			setterST.add("CN", builderSimpleClassName);
+			setterST.add("MN", methodName);
+			setterST.add("AT", argumentType);
+			return setterST.render();
+		}).toList();
 	}
 }
