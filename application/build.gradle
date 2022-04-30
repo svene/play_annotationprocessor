@@ -13,11 +13,7 @@ group 'org.svenehrke.example'
 version '0.1.0'
 
 dependencies {
-    compileOnly 'org.projectlombok:lombok:1.18.22'
-    annotationProcessor 'org.projectlombok:lombok:1.18.22'
-    testCompileOnly 'org.projectlombok:lombok:1.18.22'
-    testAnnotationProcessor 'org.projectlombok:lombok:1.18.22'
-
+    annotationProcessor 'org.svenehrke.example:library:0.1.0'
     implementation 'org.svenehrke.example:library:0.1.0'
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
@@ -33,3 +29,8 @@ tasks.named('test') {
     useJUnitPlatform()
 }
 
+tasks.withType(JavaCompile) {
+    doFirst {
+        println "AnnotationProcessorPath for $name is ${options.getAnnotationProcessorPath().getFiles()}"
+    }
+}
