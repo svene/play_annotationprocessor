@@ -1,1 +1,4 @@
-rootProject.name = '0-gradle-init-java-application'
+rootProject.name = 'play-annotationprocessor'
+
+includeBuild 'library'
+includeBuild 'application'
