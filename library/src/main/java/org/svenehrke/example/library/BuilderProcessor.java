@@ -1,7 +1,8 @@
 package org.svenehrke.example.library;
 
 import com.google.auto.service.AutoService;
-import org.stringtemplate.v4.ST;
+import freemarker.cache.ClassTemplateLoader;
+import freemarker.template.*;
 
 import javax.annotation.processing.*;
 import javax.lang.model.SourceVersion;
@@ -12,9 +13,8 @@ import javax.tools.Diagnostic;
 import javax.tools.JavaFileObject;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.nio.charset.StandardCharsets;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @SupportedAnnotationTypes("org.svenehrke.example.library.BuilderProperty")
@@ -55,7 +55,7 @@ public class BuilderProcessor extends AbstractProcessor {
 			try {
 				builderFile = processingEnv.getFiler().createSourceFile(className + "Builder");
 				try (PrintWriter out = new PrintWriter(builderFile.openWriter())) {
-					writeBuilderFile(out, className, setterMap);
+					writeBuilderFile(out, newModel(className, setterMap));
 				}
 			} catch (IOException e) {
 				throw new RuntimeException(e);
@@ -64,13 +64,17 @@ public class BuilderProcessor extends AbstractProcessor {
 		return false;
 	}
 
-	private void writeBuilderFile(
-		PrintWriter out,
-		String className,
-		Map<String, String> setterMap
-	)
-		throws IOException {
+	private void writeBuilderFile(PrintWriter out, Map<String, Object> model) throws IOException {
+		Configuration cfg = newFreemarkerConfig();
+		try {
+			var t = cfg.getTemplate("builder.ftl");
+			t.process(model, out);
+		} catch (TemplateException e) {
+			throw new RuntimeException(e);
+		}
+	}
 
+	private Map<String, Object> newModel(String className, Map<String, String> setterMap) {
 		String packageName = null;
 		int lastDot = className.lastIndexOf('.');
 		if (lastDot > 0) {
@@ -80,46 +84,30 @@ public class BuilderProcessor extends AbstractProcessor {
 		String simpleClassName = className.substring(lastDot + 1);
 		String builderClassName = className + "Builder";
 		String builderSimpleClassName = builderClassName.substring(lastDot + 1);
-		List<String> setterList = setterList(setterMap, builderSimpleClassName);
 
-		var st = new ST("""
-			<if(PN)>package <PN>;
-
-			<endif>
-			public class <CN> {
-			 private <SCN> object = new <SCN>();
-
-			 public <SCN> build() {
-			 	return object;
-			 }
-
-			 <setters:{x | <x>}; separator={\n}>
-			}
-			""");
-		if (packageName != null) {
-			st.add("PN", packageName);
-		}
-		st.add("CN", builderSimpleClassName);
-		st.add("SCN", simpleClassName);
-		st.add("setters", setterList);
-		out.print(st.render());
+		var model = new HashMap<String, Object>();
+		model.put("PN", packageName);
+		model.put("CN", builderSimpleClassName);
+		model.put("SCN", simpleClassName);
+		model.put("SL", setterModel(setterMap));
+		return model;
 	}
 
-	private List<String> setterList(Map<String, String> setterMap, String builderSimpleClassName) {
+	private List<Map<String, String>> setterModel(Map<String, String> setterMap) {
 		return setterMap.entrySet().stream().map(setter -> {
-			String methodName = setter.getKey();
-			String argumentType = setter.getValue();
-
-			ST setterST = new ST("""
-				  public <CN> <MN>(<AT> value) {
-				    object.<MN>(value);
-				    return this;
-				  }
-				""");
-			setterST.add("CN", builderSimpleClassName);
-			setterST.add("MN", methodName);
-			setterST.add("AT", argumentType);
-			return setterST.render();
+			Map<String, String> map = new HashMap<>();
+			map.put("MN", setter.getKey());
+			map.put("AT", setter.getValue());
+			return map;
 		}).toList();
+	}
+
+	private Configuration newFreemarkerConfig() {
+		Configuration cfg;
+		cfg = new Configuration(Configuration.VERSION_2_3_31);
+		cfg.setTemplateLoader(new ClassTemplateLoader(getClass(), "/org/svenehrke/example/library"));
+		cfg.setDefaultEncoding(StandardCharsets.UTF_8.name());
+		cfg.setTemplateExceptionHandler(TemplateExceptionHandler.RETHROW_HANDLER);
+		return cfg;
 	}
 }

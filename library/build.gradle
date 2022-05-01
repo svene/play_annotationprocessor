@@ -15,7 +15,7 @@ version '0.1.0'
 dependencies {
     annotationProcessor 'com.google.auto.service:auto-service:1.0.1'
     implementation 'com.google.auto.service:auto-service-annotations:1.0.1'
-    implementation 'org.antlr:stringtemplate:4.0.2'
+    implementation 'org.freemarker:freemarker:2.3.31'
 
 
     testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
