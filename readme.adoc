@@ -1,4 +1,4 @@
-Reop consisting of library providing a java annotation processor and a small app using it.
+Repository consisting of library providing a java annotation processor and a small app using it.
 
 Based on the following article:
 https://www.baeldung.com/java-annotation-processing-builder
