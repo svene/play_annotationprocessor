@@ -5,7 +5,7 @@ plugins {
 
 java {
     toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
+        languageVersion = JavaLanguageVersion.of(21)
     }
 }
 
@@ -16,17 +16,22 @@ dependencies {
     annotationProcessor 'org.svenehrke.example:library:0.1.0'
     implementation 'org.svenehrke.example:library:0.1.0'
 
-    testImplementation 'org.junit.jupiter:junit-jupiter-api:5.8.2'
-    testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.8.2'
-    testImplementation 'org.assertj:assertj-core:3.22.0'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.13.4'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    testImplementation 'org.assertj:assertj-core:3.27.4'
 }
 
 repositories {
     mavenCentral()
 }
 
-tasks.named('test') {
+tasks.named('test', Test) {
     useJUnitPlatform()
+    maxHeapSize = '1G'
+    testLogging {
+        events "passed"
+    }
 }
 
 tasks.withType(JavaCompile) {

@@ -18,7 +18,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @SupportedAnnotationTypes("org.svenehrke.example.library.BuilderProperty")
-@SupportedSourceVersion(SourceVersion.RELEASE_17)
+@SupportedSourceVersion(SourceVersion.RELEASE_21)
 @AutoService(Processor.class)
 public class BuilderProcessor extends AbstractProcessor {
 	@Override
